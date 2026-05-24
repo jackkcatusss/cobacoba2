@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Manager - Naruto Edition 🍥</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      /* Background default Naruto */
+      background-image: url('');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      transition: background-image 0.5s ease-in-out;
+    }
+    
+    /* Overlay gelap */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: -1;
+    }
+    
+    /* Tombol ganti background */
+    .bg-switcher {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 1px solid #ff6600;
+    }
+    
+    .bg-btn {
+      width: 45px;
+      height: 45px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .bg-btn:hover {
+      transform: scale(1.1);
+      border-color: #ffcc00;
+      box-shadow: 0 0 10px #ff6600;
+    }
+    
+    .bg-btn.active {
+      border-color: #ffcc00;
+      box-shadow: 0 0 15px #ff6600;
+    }
+    
+    .bg-btn::after {
+      content: attr(title);
+      position: absolute;
+      right: 55px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.8);
+      color: #ffcc00;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    
+    .bg-btn:hover::after {
+      opacity: 1;
+    }
+    
+    /* Animasi Rasengan */
+    .rasengan {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.8), rgba(255,200,100,0.6), rgba(255,100,50,0.3));
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 9998;
+      opacity: 0;
+    }
+    
+    .rasengan.active {
+      animation: rasenganSpin 0.5s ease-out forwards;
+    }
+    
+    @keyframes rasenganSpin {
+      0% { width: 0; height: 0; opacity: 0; }
+      20% { width: 50px; height: 50px; opacity: 0.8; }
+      50% { width: 150px; height: 150px; opacity: 0.5; }
+      100% { width: 300px; height: 300px; opacity: 0; }
+    }
+    
+    .kunai {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-size: 40px;
+      opacity: 0.8;
+      animation: kunaiGlow 2s infinite;
+      pointer-events: none;
+      z-index: 9999;
+      filter: drop-shadow(0 0 5px rgba(255, 100, 0, 0.5));
+    }
+    
+    @keyframes kunaiGlow {
+      0% { filter: drop-shadow(0 0 5px rgba(255, 100, 0, 0.3)); transform: rotate(0deg); }
+      50% { filter: drop-shadow(0 0 15px rgba(255, 100, 0, 0.8)); transform: rotate(10deg); }
+      100% { filter: drop-shadow(0 0 5px rgba(255, 100, 0, 0.3)); transform: rotate(0deg); }
+    }
+    
+    .shuriken {
+      position: absolute;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .shuriken.active {
+      animation: shurikenThrow 0.5s ease-out forwards;
+    }
+    
+    @keyframes shurikenThrow {
+      0% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+      20% { opacity: 1; transform: scale(1.2) rotate(180deg); text-shadow: 0 0 10px orange; }
+      100% { opacity: 0; transform: scale(1) rotate(360deg); }
+    }
+    
+    .btn-chidori {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .btn-chidori:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(0, 150, 255, 0.6);
+    }
+    
+    .btn-chidori::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 150, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn-chidori:hover::before {
+      left: 100%;
+    }
+    
+    /* Layout */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* SIDEBAR */
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, rgba(30, 20, 10, 0.95), rgba(10, 10, 10, 0.98));
+      backdrop-filter: blur(10px);
+      color: #ffcc80;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 2px solid #ff6600;
+    }
+    
+    .sidebar-header {
+      padding: 28px 20px;
+      border-bottom: 2px solid #ff6600;
+      text-align: center;
+    }
+    
+    .sidebar-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #ffcc00, #ff6600, #ffcc00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: titlePulse 2s infinite;
+    }
+    
+    @keyframes titlePulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 1; text-shadow: 0 0 10px rgba(255, 102, 0, 0.5); }
+      100% { opacity: 0.8; }
+    }
+    
+    .sidebar-header p {
+      font-size: 11px;
+      color: #ff9966;
+      margin-top: 6px;
+    }
+    
+    .sidebar-menu {
+      flex: 1;
+      padding: 20px 0;
+    }
+    
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      margin: 4px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #ccaa77;
+      position: relative;
+    }
+    
+    .menu-item::before {
+      content: '🗡️';
+      position: absolute;
+      right: -30px;
+      opacity: 0;
+      transition: all 0.3s;
+    }
+    
+    .menu-item:hover::before {
+      right: 15px;
+      opacity: 0.5;
+    }
+    
+    .menu-item:hover {
+      background: rgba(255, 102, 0, 0.15);
+      color: #ffaa44;
+      transform: translateX(5px);
+    }
+    
+    .menu-item.active {
+      background: linear-gradient(135deg, rgba(255, 102, 0, 0.25), rgba(255, 102, 0, 0.1));
+      color: #ffaa44;
+      box-shadow: 0 0 15px rgba(255, 102, 0, 0.3);
+      border-left: 3px solid #ff6600;
+    }
+    
+    .menu-item .icon {
+      font-size: 22px;
+      width: 32px;
+      text-align: center;
+    }
+    
+    .menu-item .label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 2px solid #ff6600;
+      font-size: 11px;
+      color: #ffaa66;
+      text-align: center;
+    }
+    
+    /* MAIN CONTENT */
+    .main-content {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+    
+    .main-header {
+      margin-bottom: 28px;
+    }
+    
+    .main-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffcc00, #ff6600, #ffcc00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: textGlow 3s infinite;
+    }
+    
+    @keyframes textGlow {
+      0% { text-shadow: none; }
+      50% { text-shadow: 0 0 20px rgba(255, 102, 0, 0.3); }
+      100% { text-shadow: none; }
+    }
+    
+    .main-header p {
+      color: #ccaa77;
+      font-size: 14px;
+      margin-top: 6px;
+    }
+    
+    /* Halaman konten - disembunyikan kecuali yang aktif */
+    .page {
+      display: none;
+    }
+    
+    .page.active {
+      display: block;
+    }
+    
+    /* Card Section */
+    .section {
+      background: rgba(20, 15, 25, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      transition: all 0.3s;
+    }
+    
+    .section:hover {
+      border-color: rgba(255, 102, 0, 0.7);
+      box-shadow: 0 0 30px rgba(255, 102, 0, 0.15);
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      color: #ff9966;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 4px solid #ff6600;
+      padding-left: 15px;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .form-group {
+      flex: 1;
+      min-width: 160px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #ccaa77;
+      margin-bottom: 8px;
+    }
+    
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid rgba(255, 102, 0, 0.3);
+      border-radius: 12px;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #ff6600;
+      box-shadow: 0 0 15px rgba(255, 102, 0, 0.3);
+    }
+    
+    button {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button.primary { background: linear-gradient(135deg, #2563eb, #1e40af); color: white; }
+    button.primary:hover { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-2px); box-shadow: 0 0 20px rgba(37, 99, 235, 0.5); }
+    button.success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+    button.success:hover { background: linear-gradient(135deg, #34d399, #10b981); transform: translateY(-2px); box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+    button.warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+    button.warning:hover { background: linear-gradient(135deg, #fbbf24, #f59e0b); transform: translateY(-2px); box-shadow: 0 0 20px rgba(245, 158, 11, 0.5); }
+    button.danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+    button.danger:hover { background: linear-gradient(135deg, #f87171, #ef4444); transform: translateY(-2px); }
+    button.secondary { background: rgba(100, 116, 139, 0.8); color: white; }
+    button.secondary:hover { background: #64748b; transform: translateY(-2px); }
+    
+    .info-box {
+      background: rgba(255, 102, 0, 0.1);
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin: 15px 0;
+      font-size: 13px;
+      color: #ffaa66;
+      border-left: 3px solid #ff6600;
+    }
+    
+    .preview-table-container {
+      max-height: 450px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.4);
+    }
+    
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .preview-table th {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 14px 12px;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+      color: #ff9966;
+      border-bottom: 2px solid rgba(255, 102, 0, 0.3);
+    }
+    
+    .preview-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #ccaa77;
+    }
+    
+    .preview-table tr:hover {
+      background: rgba(255, 102, 0, 0.08);
+    }
+    
+    .preview-table input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #ff6600;
+    }
+    
+    .old-name {
+      font-family: monospace;
+      font-size: 12px;
+      color: #aa8866;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .new-name {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #ffaa66;
+    }
+    
+    .action-bar {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin: 25px 0 20px;
+      flex-wrap: wrap;
+    }
+    
+    .selection-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      flex-wrap: wrap;
+      border: 1px solid rgba(255, 102, 0, 0.2);
+    }
+    
+    .selection-bar span {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ccaa77;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .stat-card {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 18px;
+      border-radius: 14px;
+      text-align: center;
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      transition: all 0.3s;
+    }
+    
+    .stat-card:hover {
+      border-color: #ff6600;
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(255, 102, 0, 0.2);
+    }
+    
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      color: #ffaa66;
+    }
+    
+    .stat-label {
+      font-size: 13px;
+      color: #aa8866;
+      margin-top: 5px;
+    }
+    
+    .result-container {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255, 102, 0, 0.3);
+    }
+    
+    .result-item {
+      padding: 8px 12px;
+      margin: 6px 0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    
+    .alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .alert-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .alert-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    .alert-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+    .alert-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    
+    .loading {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 102, 0, 0.3);
+      border-top: 2px solid #ff6600;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .batch-control {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 102, 0, 0.2);
+    }
+    
+    .batch-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .badge-500 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge-300 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    
+    .duplicate-config {
+      background: rgba(245, 158, 11, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .duplicate-config label {
+      font-weight: 600;
+      color: #fbbf24;
+    }
+    
+    .duplicate-config input {
+      width: 120px;
+      padding: 8px 12px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+    
+    .quick-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    
+    .quick-btn {
+      padding: 4px 12px;
+      font-size: 11px;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 20px;
+      cursor: pointer;
+      color: #fbbf24;
+      transition: all 0.2s;
+    }
+    
+    .quick-btn:hover {
+      background: rgba(245, 158, 11, 0.4);
+      transform: scale(1.05);
+    }
+    
+    .skip-container {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin-left: auto;
+      border-left: 1px solid rgba(255, 102, 0, 0.3);
+      padding-left: 15px;
+    }
+    
+    .skip-container label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #ccaa77;
+    }
+    
+    .start-from-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .start-from-container span { font-size: 12px; color: #ccaa77; }
+    .start-from-container input {
+      width: 60px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+    
+    .folder-info { margin-top: 15px; }
+    textarea { font-family: monospace; resize: vertical; }
+    
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #1a0f0a; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #ff6600; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #ffaa44; }
+  </style>
+</head>
+<body>
+  <!-- EFEK NARUTO -->
+  <div class="rasengan" id="rasengan"></div>
+  <div class="kunai" id="kunai">🗡️🍥</div>
+  
+  <!-- TOMBOL GANTI BACKGROUND -->
+  <div class="bg-switcher">
+    <div class="bg-btn" data-bg="naruto1" title="" style="background-image: url('https://i.pinimg.com/736x/34/76/87/3476870fd33e46fe9dc5e180d251d9d7.jpg');"></div>
+    <div class="bg-btn" data-bg="naruto2" title="" style="background-image: url('https://i.pinimg.com/736x/34/76/87/3476870fd33e46fe9dc5e180d251d9d7.jpg');"></div>
+    <div class="bg-btn" data-bg="naruto3" title="" style="background-image: url('https://i.pinimg.com/736x/34/76/87/3476870fd33e46fe9dc5e180d251d9d7.jpg');"></div>
+    <div class="bg-btn" data-bg="naruto4" title="" style="background-image: url('https://i.pinimg.com/736x/34/76/87/3476870fd33e46fe9dc5e180d251d9d7.jpg');"></div>
+    <div class="bg-btn" data-bg="naruto5" title="" style="background-image: url('https://i.pinimg.com/736x/34/76/87/3476870fd33e46fe9dc5e180d251d9d7.jpg');"></div>
+    <div class="bg-btn" data-bg="dark" title="Dark Mode" style="background: #0a0a1a;"></div>
+  </div>
+  
+  <div class="app-container">
+    <!-- SIDEBAR MENU -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>🍥 FENG SHUI 🍥</h2>
+        <p>Rename & Duplikat & Tanggal</p>
+      </div>
+      <div class="sidebar-menu">
+        <div class="menu-item active" data-page="rename">
+          <div class="icon">✏️</div>
+          <div class="label">Rename File</div>
+        </div>
+        <div class="menu-item" data-page="duplicate">
+          <div class="icon">📋</div>
+          <div class="label">Duplikat File</div>
+        </div>
+        <div class="menu-item" data-page="autodate">
+          <div class="icon">📅</div>
+          <div class="label">Ganti Tanggal</div>
+        </div>
+        <div class="menu-item" data-page="quickduplicate">
+          <div class="icon">⚡</div>
+          <div class="label">Duplikat Cepat</div>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div>🗡️ NARUTO EDITION 🍥</div>
+        <div style="margin-top: 4px;">v5.0 | Auto Rename & Date</div>
+      </div>
+    </div>
+    
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <div class="main-header">
+        <h1 id="mainTitle">✏️ Rename File</h1>
+        <p id="mainDesc">Ganti nama file Google Sheets dengan format custom - Believe it! 🍥</p>
+      </div>
+      
+      <!-- ==================== HALAMAN RENAME ==================== -->
+      <div id="page-rename" class="page active">
+        <div class="section">
+          <div class="section-title">📂 1. Folder Sumber</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Folder ID Google Drive</label><input type="text" id="folderIdRename" placeholder="Masukkan Folder ID"></div>
+            <div class="form-group" style="flex:0.5;"><label>&nbsp;</label><button class="primary btn-chidori" onclick="loadFiles('rename')" id="loadBtnRename" style="width:100%;">📂 Ambil File</button></div>
+          </div>
+          <div id="folderInfoRename" class="folder-info"></div>
+        </div>
+        
+        <div id="formatSectionRename" style="display:none;">
+          <div class="section">
+            <div class="section-title">🎨 2. Custom Format Nama</div>
+            <div class="form-row">
+              <div class="form-group"><label>🏷️ Pilih Situs</label><select id="situsSelectRename"></select></div>
+              <div class="form-group"><label>📝 Pilih Custom Text</label><select id="customTextSelectRename"><option value="DATA 500">DATA 500</option><option value="DATA 300">DATA 300</option></select></div>
+              <div class="form-group"><label>📅 Pilih Bulan</label><select id="bulanSelectRename"><option value="JANUARI">Januari</option><option value="FEBRUARI">Februari</option><option value="MARET">Maret</option><option value="APRIL">April</option><option value="MEI" selected>Mei</option><option value="JUNI">Juni</option><option value="JULI">Juli</option><option value="AGUSTUS">Agustus</option><option value="SEPTEMBER">September</option><option value="OKTOBER">Oktober</option><option value="NOVEMBER">November</option><option value="DESEMBER">Desember</option></select></div>
+              <div class="form-group"><label>📆 Pilih Tahun</label><select id="tahunSelectRename"><option value="2020">2020</option><option value="2021">2021</option><option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option></select></div>
+              <div class="form-group" style="flex:0.5;"><label>&nbsp;</label><button class="primary btn-chidori" onclick="generatePreview('rename')" id="previewBtnRename" style="width:100%;">👁️ Preview</button></div>
+            </div>
+            <div class="batch-control" id="batchControlRename" style="display:none;"><h4>⚡ Update Cepat Custom Text</h4><div class="batch-buttons"><button onclick="batchUpdateCustomText('rename', 'DATA 500')" style="background:#dbeafe20;color:#ffaa66;">📝 DATA 500</button><button onclick="batchUpdateCustomText('rename', 'DATA 300')" style="background:#fef3c720;color:#ffaa66;">📝 DATA 300</button></div></div>
+          </div>
+        </div>
+        
+        <div id="previewSectionRename" style="display:none;">
+          <div class="section">
+            <div class="section-title">📋 3. Preview & Pilih File</div>
+            <div class="info-box" id="previewInfoRename"></div>
+            <div class="selection-bar">
+              <span>⚡ Pilih Cepat:</span>
+              <button onclick="selectByNumbers('rename', '2,5,10,15,20,25,30')" class="secondary" style="padding:6px 12px;">2,5,10,15,20,25,30</button>
+              <button onclick="selectByNumbers('rename', '1,5,10,15,20,25,31')" class="secondary" style="padding:6px 12px;">1,5,10,15,20,25,31</button>
+              <button onclick="selectByNumbers('rename', '1-10')" class="secondary" style="padding:6px 12px;">1-10</button>
+              <button onclick="selectByNumbers('rename', '11-20')" class="secondary" style="padding:6px 12px;">11-20</button>
+              <button onclick="selectByNumbers('rename', '21-31')" class="secondary" style="padding:6px 12px;">21-31</button>
+              <button onclick="selectAll('rename')" class="success" style="padding:6px 12px;">✅ Semua</button>
+              <button onclick="deselectAll('rename')" class="danger" style="padding:6px 12px;">❌ Batal</button>
+              <div class="skip-container"><label><input type="checkbox" id="skipFirstRename" onchange="toggleSkipFirst('rename')"> ⏭️ Skip file pertama</label><div id="startFromContainerRename" style="display:none;" class="start-from-container"><span>Mulai dari nomor:</span><input type="number" id="startFromRename" value="1" min="1" max="100"></div></div>
+              <span style="margin-left:auto;" id="selectedCountRename">0 file dipilih</span>
+            </div>
+            <div class="preview-table-container"><table class="preview-table" id="previewTableRename"><thead><tr><th style="width:40px;">Pilih</th><th style="width:50px;">No</th><th style="width:35%;">Nama Lama</th><th style="width:45%;">Nama Baru</th></tr></thead><tbody id="previewTableBodyRename"></tbody></tr></div>
+            <div class="action-bar"><button class="success btn-chidori" onclick="executeRename()" id="actionBtnRename">✏️ Rename File yang Dipilih</button><button class="secondary" onclick="resetSelection('rename')">🔄 Reset</button></div>
+            <div id="statsPanelRename"></div><div id="resultPanelRename" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ==================== HALAMAN DUPLIKAT ==================== -->
+      <div id="page-duplicate" class="page">
+        <div class="section">
+          <div class="section-title">📂 1. Folder Sumber</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Folder ID Google Drive</label><input type="text" id="folderIdDuplicate" placeholder="Masukkan Folder ID"></div>
+            <div class="form-group" style="flex:0.5;"><label>&nbsp;</label><button class="primary btn-chidori" onclick="loadFiles('duplicate')" id="loadBtnDuplicate" style="width:100%;">📂 Ambil File</button></div>
+          </div>
+          <div id="folderInfoDuplicate" class="folder-info"></div>
+        </div>
+        
+        <div id="formatSectionDuplicate" style="display:none;">
+          <div class="section">
+            <div class="section-title">🎨 2. Custom Format Nama</div>
+            <div class="form-row">
+              <div class="form-group"><label>🏷️ Pilih Situs</label><select id="situsSelectDuplicate"></select></div>
+              <div class="form-group"><label>📝 Pilih Custom Text</label><select id="customTextSelectDuplicate"><option value="DATA 500">DATA 500</option><option value="DATA 300">DATA 300</option></select></div>
+              <div class="form-group"><label>📅 Pilih Bulan</label><select id="bulanSelectDuplicate"><option value="JANUARI">Januari</option><option value="FEBRUARI">Februari</option><option value="MARET">Maret</option><option value="APRIL">April</option><option value="MEI" selected>Mei</option><option value="JUNI">Juni</option><option value="JULI">Juli</option><option value="AGUSTUS">Agustus</option><option value="SEPTEMBER">September</option><option value="OKTOBER">Oktober</option><option value="NOVEMBER">November</option><option value="DESEMBER">Desember</option></select></div>
+              <div class="form-group"><label>📆 Pilih Tahun</label><select id="tahunSelectDuplicate"><option value="2020">2020</option><option value="2021">2021</option><option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option></select></div>
+              <div class="form-group" style="flex:0.5;"><label>&nbsp;</label><button class="primary btn-chidori" onclick="generatePreview('duplicate')" id="previewBtnDuplicate" style="width:100%;">👁️ Preview</button></div>
+            </div>
+            <div class="duplicate-config"><label>📊 Jumlah Duplikat per File:</label><div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;"><input type="number" id="duplicateCount" min="1" max="100" value="1" style="width:100px;"><div class="quick-buttons"><span class="quick-btn" onclick="setDuplicateCount(1)">1x</span><span class="quick-btn" onclick="setDuplicateCount(2)">2x</span><span class="quick-btn" onclick="setDuplicateCount(3)">3x</span><span class="quick-btn" onclick="setDuplicateCount(5)">5x</span><span class="quick-btn" onclick="setDuplicateCount(10)">10x</span><span class="quick-btn" onclick="setDuplicateCount(20)">20x</span><span class="quick-btn" onclick="setDuplicateCount(31)">31x</span></div></div></div>
+            <div class="batch-control" id="batchControlDuplicate" style="display:none;"><h4>⚡ Update Cepat Custom Text</h4><div class="batch-buttons"><button onclick="batchUpdateCustomText('duplicate', 'DATA 500')" style="background:#dbeafe20;color:#ffaa66;">📝 DATA 500</button><button onclick="batchUpdateCustomText('duplicate', 'DATA 300')" style="background:#fef3c720;color:#ffaa66;">📝 DATA 300</button></div></div>
+          </div>
+        </div>
+        
+        <div id="previewSectionDuplicate" style="display:none;">
+          <div class="section">
+            <div class="section-title">📋 3. Preview & Pilih File</div>
+            <div class="info-box" id="previewInfoDuplicate"></div>
+            <div class="selection-bar">
+              <span>⚡ Pilih Cepat:</span>
+              <button onclick="selectByNumbers('duplicate', '2,5,10,15,20,25,30')" class="secondary" style="padding:6px 12px;">2,5,10,15,20,25,30</button>
+              <button onclick="selectByNumbers('duplicate', '1,5,10,15,20,25,31')" class="secondary" style="padding:6px 12px;">1,5,10,15,20,25,31</button>
+              <button onclick="selectByNumbers('duplicate', '1-10')" class="secondary" style="padding:6px 12px;">1-10</button>
+              <button onclick="selectByNumbers('duplicate', '11-20')" class="secondary" style="padding:6px 12px;">11-20</button>
+              <button onclick="selectByNumbers('duplicate', '21-31')" class="secondary" style="padding:6px 12px;">21-31</button>
+              <button onclick="selectAll('duplicate')" class="success" style="padding:6px 12px;">✅ Semua</button>
+              <button onclick="deselectAll('duplicate')" class="danger" style="padding:6px 12px;">❌ Batal</button>
+              <div class="skip-container"><label><input type="checkbox" id="skipFirstDuplicate" onchange="toggleSkipFirst('duplicate')"> ⏭️ Skip file pertama</label><div id="startFromContainerDuplicate" style="display:none;" class="start-from-container"><span>Mulai dari nomor:</span><input type="number" id="startFromDuplicate" value="1" min="1" max="100"></div></div>
+              <span style="margin-left:auto;" id="selectedCountDuplicate">0 file dipilih</span>
+            </div>
+            <div class="preview-table-container"><table class="preview-table" id="previewTableDuplicate"><thead><tr><th style="width:40px;">Pilih</th><th style="width:50px;">No</th><th style="width:35%;">Nama Lama</th><th style="width:45%;">Nama Baru</th></tr></thead><tbody id="previewTableBodyDuplicate"></tbody></table></div>
+            <div class="action-bar"><button class="warning btn-chidori" onclick="executeDuplicate()" id="actionBtnDuplicate">📋 Duplikat File yang Dipilih</button><button class="secondary" onclick="resetSelection('duplicate')">🔄 Reset</button></div>
+            <div id="statsPanelDuplicate"></div><div id="resultPanelDuplicate" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ==================== HALAMAN GANTI TANGGAL ==================== -->
+      <div id="page-autodate" class="page">
+        <div class="section">
+          <div class="section-title">📂 1. Folder Sumber (Bisa Multiple)</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:3;"><label>Folder IDs (pisahkan dengan koma atau baris baru)</label><textarea id="folderIdsAuto" rows="3" placeholder="Masukkan Folder ID, satu per baris atau pisahkan koma&#10;Contoh:&#10;1wH6QzKqWXZ5Pq8YkLmNpQrStUvWxYzAbCdEfGhI&#10;1xY7RaKrXWY6Pq9ZkLmNpQrStUvWxYzAbCdEfGhJ"></textarea></div>
+            <div class="form-group" style="flex:0.5;"><label>&nbsp;</label><button class="primary btn-chidori" onclick="validateFolders()" id="validateBtn" style="width:100%;">🔍 Validasi Folder</button></div>
+          </div>
+          <div id="folderListAuto" class="folder-info"></div>
+        </div>
+        
+        <div id="configSectionAuto" style="display:none;">
+          <div class="section">
+            <div class="section-title">⚙️ 2. Konfigurasi Tanggal</div>
+            <div class="form-row">
+              <div class="form-group"><label>📆 Tahun</label><select id="tahunAuto"><option value="2020">2020</option><option value="2021">2021</option><option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option></select></div>
+              <div class="form-group"><label>📅 Bulan</label><select id="bulanAuto"><option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4" selected>April</option><option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select></div>
+              <div class="form-group"><label>🎯 Target Kolom (contoh: I4, A1, B2)</label><input type="text" id="targetCellAuto" value="I4" placeholder="I4"></div>
+              <div class="form-group"><label>▶️ Mulai dari file ke-</label><input type="number" id="startFromAuto" value="2" min="1" max="100"></div>
+              <div class="form-group"><label>📄 Nama Sheet (opsional)</label><input type="text" id="sheetNameAuto" placeholder="Kosongkan untuk sheet pertama"></div>
+            </div>
+            <div class="info-box" id="infoAuto" style="background:#ff660010;">📌 <strong>Informasi:</strong> Akan mengisi tanggal dari file ke-(start) sampai selesai, berurutan dari tanggal 01 sampai akhir bulan.</div>
+            <div class="action-bar"><button class="success btn-chidori" onclick="executeAutoDate()" id="executeAutoBtn">🚀 Jalankan Ganti Tanggal</button></div>
+            <div id="statsPanelAuto"></div><div id="resultPanelAuto" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ==================== HALAMAN DUPLIKAT CEPAT ==================== -->
+      <div id="page-quickduplicate" class="page">
+        <div class="section">
+          <div class="section-title">📂 1. Folder Sumber</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Folder ID Google Drive</label><input type="text" id="folderIdQuick" placeholder="Masukkan Folder ID"></div>
+            <div class="form-group" style="flex:0.5;"><label>&nbsp;</label><button class="primary btn-chidori" onclick="loadFilesQuick()" id="loadBtnQuick" style="width:100%;">📂 Ambil File</button></div>
+          </div>
+          <div id="folderInfoQuick" class="folder-info"></div>
+        </div>
+        
+        <div id="fileListSectionQuick" style="display:none;">
+          <div class="section">
+            <div class="section-title">⚡ 2. Pilih File & Konfigurasi</div>
+            <div class="form-row">
+              <div class="form-group"><label>🏷️ Pilih Situs</label><select id="situsSelectQuick"></select></div>
+              <div class="form-group"><label>📝 Custom Text</label><select id="customTextSelectQuick"><option value="DATA 500">DATA 500</option><option value="DATA 300">DATA 300</option></select></div>
+              <div class="form-group"><label>📅 Bulan</label><select id="bulanSelectQuick"><option value="JANUARI">Januari</option><option value="FEBRUARI">Februari</option><option value="MARET">Maret</option><option value="APRIL">April</option><option value="MEI" selected>Mei</option><option value="JUNI">Juni</option><option value="JULI">Juli</option><option value="AGUSTUS">Agustus</option><option value="SEPTEMBER">September</option><option value="OKTOBER">Oktober</option><option value="NOVEMBER">November</option><option value="DESEMBER">Desember</option></select></div>
+              <div class="form-group"><label>📆 Tahun</label><select id="tahunSelectQuick"><option value="2026" selected>2026</option><option value="2025">2025</option><option value="2027">2027</option></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>📊 Jumlah Duplikat</label><input type="number" id="duplicateCountQuick" min="1" max="100" value="1"></div>
+              <div class="form-group"><label><input type="checkbox" id="skipFirstQuick" onchange="toggleSkipFirstQuick()"> ⏭️ Skip file pertama</label></div>
+              <div class="form-group" id="startFromGroupQuick" style="display:none;"><label>Mulai dari nomor:</label><input type="number" id="startFromQuick" value="1" min="1"></div>
+            </div>
+            <div class="selection-bar">
+              <span>Pilih File:</span>
+              <button onclick="selectQuickAll()" class="success" style="padding:6px 12px;">✅ Semua</button>
+              <button onclick="selectQuickNone()" class="danger" style="padding:6px 12px;">❌ Batal</button>
+              <button onclick="selectQuickOdds()" class="secondary" style="padding:6px 12px;">Ganjil</button>
+              <button onclick="selectQuickEvens()" class="secondary" style="padding:6px 12px;">Genap</button>
+              <span style="margin-left:auto;" id="selectedCountQuick">0 file dipilih</span>
+            </div>
+            <div class="preview-table-container">
+              <table class="preview-table" id="previewTableQuick">
+                <thead><tr><th style="width:40px;">Pilih</th><th>No</th><th>Nama File</th></tr></thead>
+                <tbody id="previewTableBodyQuick"></tbody>
+              </table>
+            </div>
+            <div class="action-bar"><button class="warning btn-chidori" onclick="executeQuickDuplicate()" id="actionBtnQuick" style="background:#8b5cf6;">⚡ DUPLIKAT CEPAT</button></div>
+            <div id="resultPanelQuick" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ==========================================
+    // FUNGSI GANTI BACKGROUND
+    // ==========================================
+    const backgrounds = {
+      naruto1: "url('https://images3.alphacoders.com/135/thumb-1920-135625.jpg')",
+      naruto2: "url('https://images6.alphacoders.com/647/thumb-1920-647537.jpg')",
+      naruto3: "url('https://images3.alphacoders.com/135/thumb-1920-135655.jpg')",
+      naruto4: "url('hhttps://images7.alphacoders.com/105/thumb-1920-1057958.jpg')",
+      naruto5: "url('https://images3.alphacoders.com/644/thumb-1920-644129.jpg')",
+      dark: "none"
+    };
+    
+    function changeBackground(bgKey) {
+      if (bgKey === 'dark') {
+        document.body.style.background = '#0a0a1a';
+        document.body.style.backgroundSize = 'cover';
+      } else {
+        document.body.style.backgroundImage = backgrounds[bgKey];
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+      }
+      document.querySelectorAll('.bg-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.bg === bgKey) btn.classList.add('active');
+      });
+      triggerRasengan();
+    }
+    
+    document.querySelectorAll('.bg-btn').forEach(btn => {
+      btn.addEventListener('click', () => changeBackground(btn.dataset.bg));
+    });
+    
+    // ==========================================
+    // ANIMASI NARUTO
+    // ==========================================
+    function triggerRasengan() {
+      const rasengan = document.getElementById('rasengan');
+      rasengan.classList.add('active');
+      setTimeout(() => rasengan.classList.remove('active'), 500);
+    }
+    
+    function triggerShuriken(element) {
+      const shuriken = document.createElement('span');
+      shuriken.className = 'shuriken';
+      shuriken.innerHTML = '⭐';
+      shuriken.style.position = 'absolute';
+      shuriken.style.left = Math.random() * 100 + '%';
+      shuriken.style.top = Math.random() * 100 + '%';
+      shuriken.style.fontSize = (Math.random() * 20 + 10) + 'px';
+      element.style.position = 'relative';
+      element.appendChild(shuriken);
+      setTimeout(() => {
+        shuriken.classList.add('active');
+        setTimeout(() => shuriken.remove(), 500);
+      }, 10);
+    }
+    
+    setInterval(() => { if (Math.random() > 0.7) triggerRasengan(); }, 15000);
+    document.querySelectorAll('.btn-chidori, button, .menu-item').forEach(el => {
+      el.addEventListener('mouseenter', () => triggerShuriken(el));
+    });
+    
+    // ==========================================
+    // NAVIGASI SIDEBAR (PISAH HALAMAN)
+    // ==========================================
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const page = this.dataset.page;
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${page}`).classList.add('active');
+        
+        const titles = { rename: '✏️ Rename File', duplicate: '📋 Duplikat File', autodate: '📅 Ganti Tanggal Otomatis', quickduplicate: '⚡ Duplikat Cepat' };
+        const descs = { rename: 'Ganti nama file Google Sheets dengan format custom', duplicate: 'Copy file Google Sheets dengan jumlah yang ditentukan', autodate: 'Isi tanggal otomatis berurutan ke kolom tertentu di file Excel', quickduplicate: 'Duplikat file tanpa preview - proses lebih cepat!' };
+        document.getElementById('mainTitle').innerHTML = titles[page];
+        document.getElementById('mainDesc').innerHTML = descs[page];
+        triggerRasengan();
+      });
+    });
+    
+    // ==========================================
+    // VARIABLES GLOBAL
+    // ==========================================
+    let currentFilesRename = [], situsList = [], previewDataRename = [], generatedDatesRename = [], skipFirstRename = false;
+    let currentFilesDuplicate = [], previewDataDuplicate = [], generatedDatesDuplicate = [], skipFirstDuplicate = false, currentFolderIdDuplicate = "";
+    let quickFiles = [], quickSelected = [], quickSkipFirst = false;
+    
+    // ==========================================
+    // FUNGSI UMUM
+    // ==========================================
+    function setDuplicateCount(count) { document.getElementById('duplicateCount').value = count; triggerRasengan(); }
+    
+    function showAlert(message, type, page) {
+      const containerId = page === 'rename' ? 'folderInfoRename' : 'folderInfoDuplicate';
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type}`;
+      alertDiv.textContent = message;
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      container.appendChild(alertDiv);
+      setTimeout(() => alertDiv.remove(), 4000);
+      triggerRasengan();
+    }
+    
+    function showAlertAuto(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type}`;
+      alertDiv.textContent = message;
+      const container = document.getElementById('folderListAuto');
+      container.innerHTML = '';
+      container.appendChild(alertDiv);
+      setTimeout(() => alertDiv.remove(), 4000);
+      triggerRasengan();
+    }
+    
+    function showAlertQuick(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type}`;
+      alertDiv.textContent = message;
+      const container = document.getElementById('folderInfoQuick');
+      container.innerHTML = '';
+      container.appendChild(alertDiv);
+      setTimeout(() => alertDiv.remove(), 4000);
+      triggerRasengan();
+    }
+    
+    // ==========================================
+    // LOAD FILES (RENAME & DUPLIKAT)
+    // ==========================================
+    function loadFiles(page) {
+      const folderId = document.getElementById(`folderId${page.charAt(0).toUpperCase() + page.slice(1)}`).value.trim();
+      if (!folderId) { showAlert('Masukkan Folder ID!', 'danger', page); return; }
+      if (page === 'duplicate') currentFolderIdDuplicate = folderId;
+      const btn = document.getElementById(`loadBtn${page.charAt(0).toUpperCase() + page.slice(1)}`);
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Memproses...';
+      document.getElementById(`folderInfo${page.charAt(0).toUpperCase() + page.slice(1)}`).innerHTML = '<div class="alert alert-info">⏳ Mengambil daftar file...</div>';
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '📂 Ambil File';
+        if (result.success) {
+          situsList = result.situsList;
+          if (page === 'rename') {
+            currentFilesRename = result.files;
+            const situsSelect = document.getElementById('situsSelectRename');
+            situsSelect.innerHTML = '<option value="">-- Pilih Situs --</option>';
+            situsList.forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; situsSelect.appendChild(opt); });
+            situsSelect.value = "FATCAI";
+            document.getElementById('formatSectionRename').style.display = 'block';
+            document.getElementById('folderInfoRename').innerHTML = `<div class="alert alert-success">✅ Folder: <strong>${result.folderName}</strong> | Total ${result.total} file</div>`;
+          } else {
+            currentFilesDuplicate = result.files;
+            const situsSelect = document.getElementById('situsSelectDuplicate');
+            situsSelect.innerHTML = '<option value="">-- Pilih Situs --</option>';
+            situsList.forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; situsSelect.appendChild(opt); });
+            situsSelect.value = "FATCAI";
+            document.getElementById('formatSectionDuplicate').style.display = 'block';
+            document.getElementById('folderInfoDuplicate').innerHTML = `<div class="alert alert-success">✅ Folder: <strong>${result.folderName}</strong> | Total ${result.total} file</div>`;
+          }
+        } else { showAlert('Error: ' + result.error, 'danger', page); }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '📂 Ambil File';
+        showAlert('Error: ' + error.message, 'danger', page);
+      }).getFilesFromFolder(folderId);
+    }
+    
+    // ==========================================
+    // GENERATE PREVIEW
+    // ==========================================
+    function generatePreview(page) {
+      const selectedSitus = document.getElementById(`situsSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const selectedCustomText = document.getElementById(`customTextSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const selectedBulan = document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const selectedTahun = document.getElementById(`tahunSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      if (!selectedSitus) { showAlert('Pilih situs!', 'danger', page); return; }
+      const currentFiles = page === 'rename' ? currentFilesRename : currentFilesDuplicate;
+      const btn = document.getElementById(`previewBtn${page.charAt(0).toUpperCase() + page.slice(1)}`);
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Generating...';
+      google.script.run.withSuccessHandler(function(dates) {
+        btn.disabled = false;
+        btn.innerHTML = '👁️ Preview';
+        if (page === 'rename') {
+          generatedDatesRename = dates;
+          previewDataRename = [];
+          for (let i = 0; i < currentFiles.length; i++) {
+            const file = currentFiles[i];
+            const tanggal = dates[i] || `01 ${selectedBulan} ${selectedTahun}`;
+            previewDataRename.push({ nomor: file.nomor, fileId: file.fileId, oldName: file.oldName, newName: `${file.nomor}. ${selectedSitus} ${selectedCustomText} - ${tanggal}`, customText: selectedCustomText, tanggal: tanggal, selected: false });
+          }
+          renderPreviewTable('rename');
+          document.getElementById('previewSectionRename').style.display = 'block';
+          document.getElementById('batchControlRename').style.display = 'block';
+          const bulanDisplay = document.getElementById('bulanSelectRename').options[document.getElementById('bulanSelectRename').selectedIndex].text;
+          document.getElementById('previewInfoRename').innerHTML = `🎯 Format: NOMOR. ${selectedSitus} ${selectedCustomText} - DD ${bulanDisplay} ${selectedTahun}`;
+        } else {
+          generatedDatesDuplicate = dates;
+          previewDataDuplicate = [];
+          for (let i = 0; i < currentFiles.length; i++) {
+            const file = currentFiles[i];
+            const tanggal = dates[i] || `01 ${selectedBulan} ${selectedTahun}`;
+            previewDataDuplicate.push({ nomor: file.nomor, fileId: file.fileId, oldName: file.oldName, newName: `${file.nomor}. ${selectedSitus} ${selectedCustomText} - ${tanggal}`, customText: selectedCustomText, tanggal: tanggal, selected: false });
+          }
+          renderPreviewTable('duplicate');
+          document.getElementById('previewSectionDuplicate').style.display = 'block';
+          document.getElementById('batchControlDuplicate').style.display = 'block';
+          const bulanDisplay = document.getElementById('bulanSelectDuplicate').options[document.getElementById('bulanSelectDuplicate').selectedIndex].text;
+          document.getElementById('previewInfoDuplicate').innerHTML = `🎯 Format: NOMOR. ${selectedSitus} ${selectedCustomText} - DD ${bulanDisplay} ${selectedTahun}`;
+        }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '👁️ Preview';
+        showAlert('Error: ' + error.message, 'danger', page);
+      }).generateDates(selectedBulan, selectedTahun, currentFiles.length);
+    }
+    
+    function renderPreviewTable(page) {
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const tbody = document.getElementById(`previewTableBody${page.charAt(0).toUpperCase() + page.slice(1)}`);
+      tbody.innerHTML = '';
+      for (let i = 0; i < previewData.length; i++) {
+        const item = previewData[i];
+        const row = tbody.insertRow();
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = item.selected;
+        cb.onchange = (function(n) { return function() { toggleSelect(page, n); }; })(item.nomor);
+        row.insertCell(0).appendChild(cb);
+        row.insertCell(1).textContent = item.nomor;
+        row.insertCell(2).innerHTML = `<div class="old-name">📄 ${item.oldName}</div>`;
+        const badgeClass = item.customText === 'DATA 500' ? 'badge-500' : 'badge-300';
+        row.insertCell(3).innerHTML = `<div class="new-name">🍥 ${item.newName}<span class="badge ${badgeClass}" style="margin-left:8px;">${item.customText}</span></div>`;
+      }
+      updateSelectedCount(page);
+    }
+    
+    function toggleSelect(page, nomor) {
+      const skipFirst = page === 'rename' ? skipFirstRename : skipFirstDuplicate;
+      if (skipFirst && nomor === 1) { showAlert('🍥 File nomor 1 dilewati!', 'warning', page); return; }
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const item = previewData.find(i => i.nomor === nomor);
+      if (item) { item.selected = !item.selected; renderPreviewTable(page); if (skipFirst) updatePreviewWithSkip(page); }
+      updateSelectedCount(page);
+      triggerRasengan();
+    }
+    
+    function selectByNumbers(page, input) {
+      let numbers = [];
+      if (input.includes('-')) { const [s,e] = input.split('-').map(Number); for (let i=s; i<=e; i++) numbers.push(i); }
+      else { numbers = input.split(',').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)); }
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      previewData.forEach(item => { item.selected = numbers.includes(item.nomor); });
+      const skipFirst = page === 'rename' ? skipFirstRename : skipFirstDuplicate;
+      if (skipFirst) { const file1 = previewData.find(f=>f.nomor===1); if (file1) file1.selected = false; renderPreviewTable(page); updatePreviewWithSkip(page); }
+      else { renderPreviewTable(page); }
+      updateSelectedCount(page);
+      triggerRasengan();
+    }
+    
+    function selectAll(page) {
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const skipFirst = page === 'rename' ? skipFirstRename : skipFirstDuplicate;
+      previewData.forEach(item => { item.selected = skipFirst ? item.nomor !== 1 : true; });
+      renderPreviewTable(page);
+      if (skipFirst) updatePreviewWithSkip(page);
+      updateSelectedCount(page);
+      triggerRasengan();
+    }
+    
+    function deselectAll(page) {
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      previewData.forEach(item => item.selected = false);
+      renderPreviewTable(page);
+      updateSelectedCount(page);
+      triggerRasengan();
+    }
+    
+    function resetSelection(page) {
+      deselectAll(page);
+      document.getElementById(`resultPanel${page.charAt(0).toUpperCase() + page.slice(1)}`).style.display = 'none';
+      document.getElementById(`statsPanel${page.charAt(0).toUpperCase() + page.slice(1)}`).innerHTML = '';
+      showAlert('🍥 Pilihan direset!', 'success', page);
+    }
+    
+    function updateSelectedCount(page) {
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const count = previewData.filter(i=>i.selected).length;
+      document.getElementById(`selectedCount${page.charAt(0).toUpperCase() + page.slice(1)}`).innerHTML = `${count} file dipilih`;
+    }
+    
+    function toggleSkipFirst(page) {
+      const isChecked = document.getElementById(`skipFirst${page.charAt(0).toUpperCase() + page.slice(1)}`).checked;
+      const container = document.getElementById(`startFromContainer${page.charAt(0).toUpperCase() + page.slice(1)}`);
+      if (page === 'rename') {
+        skipFirstRename = isChecked;
+        if (isChecked) { container.style.display = 'flex'; showAlert('🍥 Skip file pertama diaktifkan! File nomor 1 akan dilewati.', 'success', page); const file1 = previewDataRename.find(f=>f.nomor===1); if (file1) { file1.selected = false; renderPreviewTable(page); } updatePreviewWithSkip(page); }
+        else { container.style.display = 'none'; showAlert('Skip file pertama dinonaktifkan.', 'info', page); updatePreviewWithoutSkip(page); }
+      } else {
+        skipFirstDuplicate = isChecked;
+        if (isChecked) { container.style.display = 'flex'; showAlert('🍥 Skip file pertama diaktifkan! File nomor 1 akan dilewati.', 'success', page); const file1 = previewDataDuplicate.find(f=>f.nomor===1); if (file1) { file1.selected = false; renderPreviewTable(page); } updatePreviewWithSkip(page); }
+        else { container.style.display = 'none'; showAlert('Skip file pertama dinonaktifkan.', 'info', page); updatePreviewWithoutSkip(page); }
+      }
+      updateSelectedCount(page);
+      triggerRasengan();
+    }
+    
+    function updatePreviewWithSkip(page) {
+      const skipFirst = page === 'rename' ? skipFirstRename : skipFirstDuplicate;
+      if (!skipFirst) return;
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const situs = document.getElementById(`situsSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const customText = document.getElementById(`customTextSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const bulan = document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const tahun = document.getElementById(`tahunSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const startFrom = parseInt(document.getElementById(`startFrom${page.charAt(0).toUpperCase() + page.slice(1)}`).value) || 1;
+      const selectedFiles = previewData.filter(f => f.selected && f.nomor !== 1);
+      let currentNumber = startFrom;
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const day = currentNumber.toString().padStart(2,'0');
+        const newDate = `${day} ${bulan} ${tahun}`;
+        file.newName = `${currentNumber}. ${situs} ${customText} - ${newDate}`;
+        currentNumber++;
+      }
+      renderPreviewTable(page);
+      const bulanDisplay = document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).options[document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).selectedIndex].text;
+      document.getElementById(`previewInfo${page.charAt(0).toUpperCase() + page.slice(1)}`).innerHTML = `🎯 Format: NOMOR. ${situs} ${customText} - DD ${bulanDisplay} ${tahun}<br>✅ Skip aktif: File nomor 1 dilewati. Dimulai dari nomor ${startFrom}`;
+    }
+    
+    function updatePreviewWithoutSkip(page) {
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const situs = document.getElementById(`situsSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const customText = document.getElementById(`customTextSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const bulan = document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const tahun = document.getElementById(`tahunSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      for (let i = 0; i < previewData.length; i++) {
+        const file = previewData[i];
+        const day = file.nomor.toString().padStart(2,'0');
+        const tanggal = `${day} ${bulan} ${tahun}`;
+        file.newName = `${file.nomor}. ${situs} ${customText} - ${tanggal}`;
+      }
+      renderPreviewTable(page);
+      const bulanDisplay = document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).options[document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).selectedIndex].text;
+      document.getElementById(`previewInfo${page.charAt(0).toUpperCase() + page.slice(1)}`).innerHTML = `🎯 Format: NOMOR. ${situs} ${customText} - DD ${bulanDisplay} ${tahun}`;
+    }
+    
+    function batchUpdateCustomText(page, newText) {
+      const previewData = page === 'rename' ? previewDataRename : previewDataDuplicate;
+      const situs = document.getElementById(`situsSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const bulan = document.getElementById(`bulanSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      const tahun = document.getElementById(`tahunSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value;
+      for (let i = 0; i < previewData.length; i++) {
+        const file = previewData[i];
+        const day = file.nomor.toString().padStart(2,'0');
+        const tanggal = `${day} ${bulan} ${tahun}`;
+        file.customText = newText;
+        file.newName = `${file.nomor}. ${situs} ${newText} - ${tanggal}`;
+      }
+      renderPreviewTable(page);
+      document.getElementById(`customTextSelect${page.charAt(0).toUpperCase() + page.slice(1)}`).value = newText;
+      if ((page === 'rename' && skipFirstRename) || (page === 'duplicate' && skipFirstDuplicate)) updatePreviewWithSkip(page);
+      showAlert(`🍥 Semua file diupdate ke ${newText}`, 'success', page);
+    }
+    
+    function executeRename() {
+      let selectedItems = previewDataRename.filter(i => i.selected);
+      if (selectedItems.length === 0) { showAlert('🍥 Pilih file!', 'danger', 'rename'); return; }
+      if (skipFirstRename) { selectedItems = selectedItems.filter(i => i.nomor !== 1); if (selectedItems.length === 0) { showAlert('🍥 Tidak ada file (nomor 1 dilewati)!', 'danger', 'rename'); return; } }
+      const situs = document.getElementById('situsSelectRename').value;
+      const customText = document.getElementById('customTextSelectRename').value;
+      const bulan = document.getElementById('bulanSelectRename').value;
+      const tahun = document.getElementById('tahunSelectRename').value;
+      const startFrom = skipFirstRename ? (parseInt(document.getElementById('startFromRename').value) || 1) : 1;
+      const itemsToRename = selectedItems.map(item => ({ originalNomor: item.nomor, fileId: item.fileId, oldName: item.oldName, situs: situs, customText: customText, bulan: bulan, tahun: tahun }));
+      itemsToRename.sort((a,b) => a.originalNomor - b.originalNomor);
+      if (!confirm(`🍥 RENAME ${selectedItems.length} file?${skipFirstRename ? `\nSkip file pertama, mulai dari nomor ${startFrom}` : ''}\n\nContoh:\n${itemsToRename[0].oldName}\n→ ${startFrom}. ${situs} ${customText} - 01 ${bulan} ${tahun}`)) return;
+      const btn = document.getElementById('actionBtnRename');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Memproses...';
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '✏️ Rename File yang Dipilih';
+        if (result.success) {
+          result.results.forEach(res => { const item = previewDataRename.find(i => i.nomor === res.nomor); if (item && res.status === 'BERHASIL') { item.oldName = res.newName; item.selected = false; } });
+          renderPreviewTable('rename');
+          let statsHtml = `<div class="stats"><div class="stat-card"><div class="stat-number">${result.successCount}</div><div class="stat-label">✅ Berhasil</div></div><div class="stat-card"><div class="stat-number">${result.failCount}</div><div class="stat-label">❌ Gagal</div></div><div class="stat-card"><div class="stat-number">${result.totalProcessed}</div><div class="stat-label">📊 Total</div></div></div>`;
+          let resultHtml = '<div class="result-container"><strong>🍥 Detail Hasil Rename:</strong><br><br>';
+          result.results.forEach(res => { resultHtml += `<div class="result-item">${res.status === 'BERHASIL' ? '✅' : '❌'} <strong>#${res.nomor}</strong><br>&nbsp;&nbsp;📄 ${res.oldName.length > 50 ? res.oldName.substring(0,50)+'...' : res.oldName}<br>&nbsp;&nbsp;→ ${res.newName}<br>&nbsp;&nbsp;<span style="color:${res.status === 'BERHASIL' ? '#10b981' : '#ef4444'}">${res.status}:</span> ${res.message}</div>`; });
+          resultHtml += '</div>';
+          document.getElementById('statsPanelRename').innerHTML = statsHtml;
+          document.getElementById('resultPanelRename').innerHTML = resultHtml;
+          document.getElementById('resultPanelRename').style.display = 'block';
+        } else { showAlert('Error: ' + result.error, 'danger', 'rename'); }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '✏️ Rename File yang Dipilih';
+        showAlert('Error: ' + error.message, 'danger', 'rename');
+      }).renameSelectedFiles(itemsToRename, skipFirstRename, startFrom);
+    }
+    
+    function executeDuplicate() {
+      let selectedItems = previewDataDuplicate.filter(i => i.selected);
+      const duplicateCount = parseInt(document.getElementById('duplicateCount').value) || 1;
+      if (selectedItems.length === 0) { showAlert('🍥 Pilih file!', 'danger', 'duplicate'); return; }
+      if (skipFirstDuplicate) { selectedItems = selectedItems.filter(i => i.nomor !== 1); if (selectedItems.length === 0) { showAlert('🍥 Tidak ada file (nomor 1 dilewati)!', 'danger', 'duplicate'); return; } }
+      if (duplicateCount < 1 || duplicateCount > 100) { showAlert('🍥 Jumlah duplikat 1-100!', 'danger', 'duplicate'); return; }
+      const situs = document.getElementById('situsSelectDuplicate').value;
+      const customText = document.getElementById('customTextSelectDuplicate').value;
+      const bulan = document.getElementById('bulanSelectDuplicate').value;
+      const tahun = document.getElementById('tahunSelectDuplicate').value;
+      const startFrom = skipFirstDuplicate ? (parseInt(document.getElementById('startFromDuplicate').value) || 1) : 1;
+      const itemsToDuplicate = selectedItems.map(item => ({ originalNomor: item.nomor, fileId: item.fileId, oldName: item.oldName, situs: situs, customText: customText, bulan: bulan, tahun: tahun }));
+      itemsToDuplicate.sort((a,b) => a.originalNomor - b.originalNomor);
+      const totalFiles = selectedItems.length * duplicateCount;
+      if (!confirm(`🍥 DUPLIKAT ${selectedItems.length} file (${duplicateCount}x = ${totalFiles} file baru)?${skipFirstDuplicate ? `\nSkip file pertama, mulai dari nomor ${startFrom}` : ''}\n\nContoh:\n${itemsToDuplicate[0].oldName}\n→ ${startFrom}. ${situs} ${customText} - 01 ${bulan} ${tahun}`)) return;
+      const btn = document.getElementById('actionBtnDuplicate');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Memproses...';
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '📋 Duplikat File yang Dipilih';
+        if (result.success) {
+          let statsHtml = `<div class="stats"><div class="stat-card"><div class="stat-number">${result.successCount}</div><div class="stat-label">✅ File Sumber</div></div><div class="stat-card"><div class="stat-number">${result.totalFilesCreated || 0}</div><div class="stat-label">📋 File Baru</div></div><div class="stat-card"><div class="stat-number">${result.failCount}</div><div class="stat-label">❌ Gagal</div></div></div>`;
+          let resultHtml = '<div class="result-container"><strong>🍥 Detail Hasil Duplikat:</strong><br><br>';
+          result.results.forEach(res => { resultHtml += `<div class="result-item">${res.status === 'BERHASIL' ? '✅' : '❌'} <strong>#${res.nomor}</strong><br>&nbsp;&nbsp;📄 ${res.oldName.length > 50 ? res.oldName.substring(0,50)+'...' : res.oldName}<br>&nbsp;&nbsp;→ ${res.newName} ${res.filesCreated ? `(+${res.filesCreated} file)` : ''}<br>&nbsp;&nbsp;<span style="color:${res.status === 'BERHASIL' ? '#10b981' : '#ef4444'}">${res.status}:</span> ${res.message}</div>`; });
+          resultHtml += '</div>';
+          document.getElementById('statsPanelDuplicate').innerHTML = statsHtml;
+          document.getElementById('resultPanelDuplicate').innerHTML = resultHtml;
+          document.getElementById('resultPanelDuplicate').style.display = 'block';
+        } else { showAlert('Error: ' + result.error, 'danger', 'duplicate'); }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '📋 Duplikat File yang Dipilih';
+        showAlert('Error: ' + error.message, 'danger', 'duplicate');
+      }).duplicateSelectedFiles(itemsToDuplicate, currentFolderIdDuplicate, duplicateCount, skipFirstDuplicate, startFrom);
+    }
+    
+    // ==========================================
+    // GANTI TANGGAL FUNCTIONS
+    // ==========================================
+    function validateFolders() {
+      const folderInput = document.getElementById('folderIdsAuto').value;
+      let folderIds = [];
+      if (folderInput.includes(',')) { folderIds = folderInput.split(',').map(s => s.trim()).filter(s => s); }
+      else { folderIds = folderInput.split('\n').map(s => s.trim()).filter(s => s); }
+      if (folderIds.length === 0) { showAlertAuto('🍥 Masukkan minimal 1 Folder ID!', 'danger'); return; }
+      const btn = document.getElementById('validateBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Memvalidasi...';
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Validasi Folder';
+        if (result.success) {
+          let html = '<div class="alert alert-info">🍥 Folder yang ditemukan:</div><ul style="margin-top:10px;">';
+          result.folders.forEach(folder => { if (folder.error) { html += `<li>❌ ${folder.id} - ${folder.name}</li>`; } else { html += `<li>✅ <strong>${folder.name}</strong> (${folder.id}) - ${folder.fileCount} file</li>`; } });
+          html += '</ul>';
+          document.getElementById('folderListAuto').innerHTML = html;
+          document.getElementById('configSectionAuto').style.display = 'block';
+        } else { showAlertAuto('Error: ' + result.error, 'danger'); }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Validasi Folder';
+        showAlertAuto('Error: ' + error.message, 'danger');
+      }).getMultipleFolders(folderIds);
+    }
+    
+    function executeAutoDate() {
+      const folderInput = document.getElementById('folderIdsAuto').value;
+      let folderIds = [];
+      if (folderInput.includes(',')) { folderIds = folderInput.split(',').map(s => s.trim()).filter(s => s); }
+      else { folderIds = folderInput.split('\n').map(s => s.trim()).filter(s => s); }
+      if (folderIds.length === 0) { showAlertAuto('🍥 Masukkan minimal 1 Folder ID!', 'danger'); return; }
+      const tahun = parseInt(document.getElementById('tahunAuto').value);
+      const bulan = parseInt(document.getElementById('bulanAuto').value);
+      const targetCell = document.getElementById('targetCellAuto').value.trim();
+      const startFromFile = parseInt(document.getElementById('startFromAuto').value);
+      const sheetName = document.getElementById('sheetNameAuto').value.trim();
+      if (!targetCell) { showAlertAuto('🍥 Masukkan target kolom!', 'danger'); return; }
+      const cellRegex = /^[A-Z]+[0-9]+$/i;
+      if (!cellRegex.test(targetCell)) { showAlertAuto('🍥 Format target kolom salah! Contoh: I4, A1, B2', 'danger'); return; }
+      const bulanNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+      const lastDay = new Date(tahun, bulan, 0).getDate();
+      const confirmMsg = `📅 KONFIRMASI GANTI TANGGAL OTOMATIS\n\n📁 Jumlah folder: ${folderIds.length}\n📆 Bulan: ${bulanNames[bulan-1]} ${tahun}\n🎯 Target kolom: ${targetCell}\n▶️ Mulai dari file ke: ${startFromFile}\n📅 Tanggal akan diisi: 01 - ${lastDay.toString().padStart(2,'0')} ${bulanNames[bulan-1]} ${tahun}\n\n⚠️ File Excel akan diubah secara permanen!\n\nLanjutkan?`;
+      if (!confirm(confirmMsg)) return;
+      const btn = document.getElementById('executeAutoBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Memproses...';
+      const data = { folderIds: folderIds, tahun: tahun, bulan: bulan, targetCell: targetCell, startFromFile: startFromFile, sheetName: sheetName };
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '🚀 Jalankan Ganti Tanggal';
+        if (result.success) {
+          let statsHtml = `<div class="stats"><div class="stat-card"><div class="stat-number">${result.totalFolders}</div><div class="stat-label">📁 Folder Diproses</div></div><div class="stat-card"><div class="stat-number">${result.totalFilesProcessed}</div><div class="stat-label">📄 File Terisi</div></div><div class="stat-card"><div class="stat-number">${result.lastDay}</div><div class="stat-label">📅 Total Hari</div></div></div>`;
+          let resultHtml = `<div class="result-container"><strong>🍥 Hasil Ganti Tanggal Otomatis</strong><br><div style="margin-bottom:10px;">📆 Bulan: ${result.bulanName} ${result.tahun}</div>`;
+          for (let i = 0; i < result.results.length; i++) {
+            const folder = result.results[i];
+            resultHtml += `<div style="margin-top:15px; padding:10px; background:#1e1ef0; border-radius:8px;"><strong>📁 ${folder.folderName}</strong> (${folder.filesProcessed} file terisi)<br>`;
+            for (let j = 0; j < folder.details.length; j++) {
+              const detail = folder.details[j];
+              if (detail.status === 'BERHASIL') { resultHtml += `&nbsp;&nbsp;✅ ${detail.fileName} → ${detail.cell} = ${detail.tanggal}<br>`; }
+              else { resultHtml += `&nbsp;&nbsp;❌ ${detail.fileName} → ${detail.message}<br>`; }
+            }
+            resultHtml += `</div>`;
+          }
+          resultHtml += '</div>';
+          document.getElementById('statsPanelAuto').innerHTML = statsHtml;
+          document.getElementById('resultPanelAuto').innerHTML = resultHtml;
+          document.getElementById('resultPanelAuto').style.display = 'block';
+        } else { showAlertAuto('Error: ' + result.error, 'danger'); }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '🚀 Jalankan Ganti Tanggal';
+        showAlertAuto('Error: ' + error.message, 'danger');
+      }).executeAutoDate(data);
+    }
+    
+    // ==========================================
+    // DUPLIKAT CEPAT FUNCTIONS
+    // ==========================================
+    function loadFilesQuick() {
+      const folderId = document.getElementById('folderIdQuick').value.trim();
+      if (!folderId) { showAlertQuick('🍥 Masukkan Folder ID!', 'danger'); return; }
+      const btn = document.getElementById('loadBtnQuick');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Memproses...';
+      document.getElementById('folderInfoQuick').innerHTML = '<div class="alert alert-info">⏳ Mengambil daftar file...</div>';
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '📂 Ambil File';
+        if (result.success) {
+          quickFiles = result.files;
+          const situsSelect = document.getElementById('situsSelectQuick');
+          situsSelect.innerHTML = '<option value="">-- Pilih Situs --</option>';
+          result.situsList.forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; situsSelect.appendChild(opt); });
+          situsSelect.value = "FATCAI";
+          renderQuickFileList();
+          document.getElementById('fileListSectionQuick').style.display = 'block';
+          document.getElementById('folderInfoQuick').innerHTML = `<div class="alert alert-success">🍥 ${quickFiles.length} file ditemukan</div>`;
+        } else { showAlertQuick('Error: ' + result.error, 'danger'); }
+        triggerRasengan();
+      }).withFailureHandler(function(error) {
+        btn.disabled = false;
+        btn.innerHTML = '📂 Ambil File';
+        showAlertQuick('Error: ' + error.message, 'danger');
+      }).getAllFileNumbers(folderId);
+    }
+    
+    function renderQuickFileList() {
+      const tbody = document.getElementById('previewTableBodyQuick');
+      tbody.innerHTML = '';
+      quickSelected = [];
+      for (let i = 0; i < quickFiles.length; i++) {
+        const file = quickFiles[i];
+        const row = tbody.insertRow();
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = `qc_${file.nomor}`;
+        cb.onchange = (function(n) { return function() { updateQuickSelect(n, this.checked); }; })(file.nomor);
+        row.insertCell(0).appendChild(cb);
+        row.insertCell(1).textContent = file.nomor;
+        row.insertCell(2).innerHTML = `<div class="old-name">📄 ${file.oldName}</div>`;
+      }
+      updateQuickCount();
+    }
+    
+    function updateQuickSelect(nomor, checked) {
+      if (checked) { if (!quickSelected.includes(nomor)) quickSelected.push(nomor); }
+      else { quickSelected = quickSelected.filter(n => n !== nomor); }
+      updateQuickCount();
+      triggerRasengan();
+    }
+    
+    function selectQuickAll() { quickSelected = []; for (let i = 0; i < quickFiles.length; i++) { const n = quickFiles[i].nomor; quickSelected.push(n); const cb = document.getElementById(`qc_${n}`); if (cb) cb.checked = true; } updateQuickCount(); triggerRasengan(); }
+    function selectQuickNone() { quickSelected = []; for (let i = 0; i < quickFiles.length; i++) { const cb = document.getElementById(`qc_${quickFiles[i].nomor}`); if (cb) cb.checked = false; } updateQuickCount(); triggerRasengan(); }
+    function selectQuickOdds() { selectQuickNone(); for (let i = 0; i < quickFiles.length; i++) { const n = quickFiles[i].nomor; if (n % 2 === 1) { quickSelected.push(n); const cb = document.getElementById(`qc_${n}`); if (cb) cb.checked = true; } } updateQuickCount(); triggerRasengan(); }
+    function selectQuickEvens() { selectQuickNone(); for (let i = 0; i < quickFiles.length; i++) { const n = quickFiles[i].nomor; if (n % 2 === 0) { quickSelected.push(n); const cb = document.getElementById(`qc_${n}`); if (cb) cb.checked = true; } } updateQuickCount(); triggerRasengan(); }
+    function updateQuickCount() { document.getElementById('selectedCountQuick').innerHTML = `${quickSelected.length} file dipilih`; }
+    
+    function toggleSkipFirstQuick() {
+      quickSkipFirst = document.getElementById('skipFirstQuick').checked;
+      document.getElementById('startFromGroupQuick').style.display = quickSkipFirst ? 'flex' : 'none';
+      if (quickSkipFirst && quickSelected.includes(1)) { quickSelected = quickSelected.filter(n => n !== 1); const cb = document.getElementById(`qc_1`); if (cb) cb.checked = false; updateQuickCount(); }
+      triggerRasengan();
+    }
+    
+    function executeQuickDuplicate() {
+      if (quickSelected.length === 0) { alert('🍥 Pilih file dulu!'); return; }
+      const folderId = document.getElementById('folderIdQuick').value;
+      const situs = document.getElementById('situsSelectQuick').value;
+      const customText = document.getElementById('customTextSelectQuick').value;
+      const bulan = document.getElementById('bulanSelectQuick').value;
+      const tahun = document.getElementById('tahunSelectQuick').value;
+      const duplicateCount = parseInt(document.getElementById('duplicateCountQuick').value) || 1;
+      const skipFirst = document.getElementById('skipFirstQuick').checked;
+      const startFrom = skipFirst ? (parseInt(document.getElementById('startFromQuick').value) || 1) : 1;
+      if (!situs) { alert('🍥 Pilih situs!'); return; }
+      const totalFiles = quickSelected.length * duplicateCount;
+      if (!confirm(`🍥 DUPLIKAT ${quickSelected.length} file → ${totalFiles} file baru?\nFormat: ${situs} ${customText} - DD ${bulan} ${tahun}`)) return;
+      const btn = document.getElementById('actionBtnQuick');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Processing...';
+      google.script.run.withSuccessHandler(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '⚡ DUPLIKAT CEPAT';
+        if (result.success) {
+          let html = '<div class="result-container"><strong>🍥 Selesai!</strong><br>';
+          html += `✅ Berhasil: ${result.successCount}<br>❌ Gagal: ${result.failCount}<br>📊 Total: ${result.totalProcessed}<br><br>`;
+          result.results.forEach(r => { html += `${r.status === 'BERHASIL' ? '✅' : '❌'} #${r.nomor}: ${r.oldName}<br>`; });
+          html += '</div>';
+          document.getElementById('resultPanelQuick').innerHTML = html;
+          document.getElementById('resultPanelQuick').style.display = 'block';
+          quickSelected = [];
+          renderQuickFileList();
+        } else { alert('Error: ' + result.error); }
+        triggerRasengan();
+      }).quickDuplicate(folderId, quickSelected, duplicateCount, situs, customText, bulan, tahun, skipFirst, startFrom);
+    }
+  </script>
+</body>
+</html>
